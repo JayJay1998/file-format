@@ -1,0 +1,56 @@
+﻿@model File
+@{
+    ViewBag.Title = "All Items";
+}
+
+<h2>@ViewBag.Title.</h2>
+<h3>@ViewBag.Message</h3>
+
+<p>Click on view details beside each item to load its details from the database.</p>
+
+<table class="table">
+    <tr>
+        <th>
+            Name
+        </th>
+        <th>
+            Department
+        </th>
+        <th>
+            Age
+        </th>
+        <th>
+            Sex
+        </th>
+        <th>
+            Action
+        </th>
+        <th>
+            Action
+        </th>
+    </tr>
+
+    @foreach (var i in Model.UsersList)
+    {
+        <tr>
+            <td>
+                @i.Name
+            </td>
+            <td>
+                @i.Department
+            </td>
+            <td>
+                @i.Age
+            </td>
+            <td>
+                @i.Sex
+            </td>
+            <td>
+                @Html.ActionLink("Delete", "Delete", new { id = i.Id }, new { @class = "fa fa-edit" })
+            </td>
+            <td>
+                @Html.ActionLink("Edit", "Edit", new { id = i.Id })
+            </td>
+        </tr>
+    }
+</table>

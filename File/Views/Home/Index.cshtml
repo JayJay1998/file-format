@@ -1,0 +1,231 @@
+﻿@{
+    ViewBag.Title = "Home Page";
+}
+
+<div class="container"><br /><br />
+    @using (Html.BeginForm("Index", "Home", FormMethod.Post, new { enctype = "multipart/form-data" }))
+        {
+        <label>
+            First Name:<br />
+        </label>
+   
+        <input type="text" name="Firstname" id="Firstname" /><br /><br />
+        <label>
+            Last name :<br />
+        </label>
+        <input type="text" name="Lastname" id="Lastname" /><br />
+        <br />
+        <div>File Frormat</div>
+        <label for="chkRecord">
+            <input type="radio" id="chkRecord" name="chkFile" /> Record
+        </label>
+        <label for="chkUpload">
+            <input type="radio" id="chkUpload" name="chkFile" /> Upload
+        </label>
+        <hr>
+        <div id="dvRecord" style="display: none">
+            Record Audio:
+            <button id="recordButton">Record</button>
+            <button id="stopButton" disabled >Stop</button>
+           
+        </div>
+        <div id="dvUpload" style="display: none">
+            Upload File:
+            @Html.TextBox("UploadFile", "", new { type = "file" })<br />
+            
+            <input type="submit" id="SaveUpload" value="Save Upload File" name="button" />
+        </div>
+    }
+    </div>
+@ViewBag.message
+
+<script src="https://code.jquery.com/jquery-1.12.4.min.js">
+</script>
+
+<script type="text/javascript">
+    $(document).ready(function () {
+
+        $("input[name=chkFile]").click(function () {
+            
+            if ($("#chkRecord").is(':checked')) {
+                $("#dvRecord").show();
+                $("#SaveRecord").show();
+                $("#dvUpload").hide();
+                $("#SaveUpload").hide();
+            } else if ($("#chkUpload").is(':checked')) {
+                $("#dvRecord").hide();
+                $("#SaveRecord").hide();
+                $("#dvUpload").show();
+                $("#SaveUpload").show();
+            }
+        });
+
+    //    $('#SaveUpload').click(function () {
+
+        //     var Firstname = $('#Firstname').val()
+        //    var Lastname = $('#Lastname').val()
+        //   var Record = $('#SaveRecord').val()
+        //  var Upload = $('#UploadFile').val()
+
+        //  alert(Firstname)
+        // alert(Lastname)
+        // alert(Record)
+        //  alert(Upload)
+
+        //   $.ajax({
+        //       async: false,
+        //      cache: false,
+        //       type: "POST",
+        //       dataType: "json",
+        //       url: $("#urlPost").val(),
+        //     data: { "Firstname": Firstname, "Lastname": Lastname, "SaveRecord": Record, "UploadFile": Upload },
+        //     success: function (data) {
+
+        //      alert(data);
+
+        //      },
+        //       error: function (x, e) {
+        //           alert("The call to the server side. " + x.responseText);
+        //       }
+              //   });
+        //});
+    
+    });
+
+   </script>
+<script src="https://cdn.rawgit.com/mattdiamond/Recorderjs/08e7abd9/dist/recorder.js"></script>
+<script src="js/app.js"></script>
+    <script >
+    // Expose globally your audio_context, the recorder instance and audio_stream
+    var audio_context;
+    var recorder;
+    var audio_stream;
+
+    /**
+    * Patch the APIs for every browser that supports them and check
+    * if getUserMedia is supported on the browser.
+    *
+    */
+    function Initialize() {
+    try {
+    // Monkeypatch for AudioContext, getUserMedia and URL
+    window.AudioContext = window.AudioContext || window.webkitAudioContext;
+    navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia;
+    window.URL = window.URL || window.webkitURL;
+
+    // Store the instance of AudioContext globally
+    audio_context = new AudioContext;
+    console.log('Audio context is ready !');
+    console.log('navigator.getUserMedia ' + (navigator.getUserMedia ? 'available.' : 'not present!'));
+    } catch (e) {
+    alert('No web audio support in this browser!');
+    }
+    }
+
+    function startRecording() {
+    // Access the Microphone using the navigator.getUserMedia method to obtain a stream
+    navigator.getUserMedia({ audio: true }, function (stream) {
+    // Expose the stream to be accessible globally
+    audio_stream = stream;
+    // Create the MediaStreamSource for the Recorder library
+    var input = audio_context.createMediaStreamSource(stream);
+    console.log('Media stream succesfully created');
+
+    // Initialize the Recorder Library
+    recorder = new Recorder(input);
+    console.log('Recorder initialised');
+
+    // Start recording !
+    recorder && recorder.record();
+    console.log('Recording...');
+
+    // Disable Record button and enable stop button !
+    document.getElementById("recordButton").disabled = true;
+    document.getElementById("stopButton").disabled = false;
+    }, function (e) {
+    console.error('No live audio input: ' + e);
+    });
+    }
+
+
+    function stopRecording(callback, AudioFormat) {
+    // Stop the recorder instance
+    recorder && recorder.stop();
+    console.log('Stopped recording.');
+
+    // Stop the getUserMedia Audio Stream !
+    audio_stream.getAudioTracks()[0].stop();
+
+    // Disable Stop button and enable Record button !
+    document.getElementById("recordButton").disabled = false;
+    document.getElementById("stopButton").disabled = true;
+
+    // Use the Recorder Library to export the recorder Audio as a .wav file
+    // The callback providen in the stop recording method receives the blob
+    if(typeof(callback) == "function"){
+
+    /**
+    * Export the AudioBLOB using the exportWAV method.
+    * Note that this method exports too with mp3 if
+    * you provide the second argument of the function
+    */
+    recorder && recorder.exportWAV(function (blob) {
+    callback(blob);
+
+    // create WAV download link using audio data blob
+    // createDownloadLink();
+
+    // Clear the Recorder to start again !
+    recorder.clear();
+    }, (AudioFormat || "audio/wav"));
+    }
+    }
+
+    // Initialize everything once the window loads
+    window.onload = function(){
+    // Prepare and check if requirements are filled
+    Initialize();
+
+    // Handle on start recording button
+    document.getElementById("recordButton").addEventListener("click", function () {
+    startRecording();
+    }, false);
+
+    // Handle on stop recording button
+    document.getElementById("stopButton").addEventListener("click", function () {
+    // Use wav format
+    var _AudioFormat = "audio/wav";
+    // You can use mp3 to using the correct mimetype
+    //var AudioFormat = "audio/mpeg";
+
+    stopRecording(function(AudioBLOB){
+    // Note:
+    // Use the AudioBLOB for whatever you need, to download
+    // directly in the browser, to upload to the server, you name it !
+
+    // In this case we are going to add an Audio item to the list so you
+    // can play every stored Audio
+    var url = URL.createObjectURL(AudioBLOB);
+    var li = document.createElement('li');
+    var au = document.createElement('audio');
+    var hf = document.createElement('a');
+
+    au.controls = true;
+    au.src = url;
+    hf.href = url;
+    // Important:
+    // Change the format of the file according to the mimetype
+    // e.g for audio/wav the extension is .wav
+    //     for audio/mpeg (mp3) the extension is .mp3
+    hf.download = new Date().toISOString() + '.wav';
+    hf.innerHTML = hf.download;
+    li.appendChild(au);
+    li.appendChild(hf);
+    recordingslist.appendChild(li);
+    }, _AudioFormat);
+    }, false);
+    };
+
+    </script>
+
+<script src="recorder.js"></script>
